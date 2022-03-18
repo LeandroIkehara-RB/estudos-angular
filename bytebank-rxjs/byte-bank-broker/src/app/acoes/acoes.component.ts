@@ -1,8 +1,16 @@
-import { switchMap, tap } from 'rxjs/operators';
+import {
+  debounceTime,
+  distinctUntilChanged,
+  filter,
+  switchMap,
+  tap,
+} from 'rxjs/operators';
 import { AcoesService } from './acoes.service';
 import { Component } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { merge } from 'rxjs';
+
+const ESPERA_DIGITACAO = 300;
 
 @Component({
   selector: 'app-acoes',
@@ -11,23 +19,25 @@ import { merge } from 'rxjs';
 })
 export class AcoesComponent {
   acoesInput = new FormControl();
-  //acoes$ = this.acoesService.getAcoes();
+
   todasAcoes$ = this.acoesService.getAcoes().pipe(
     tap(() => {
       console.log('Fluxo Inicial');
     })
   );
   filtroPorInput$ = this.acoesInput.valueChanges.pipe(
+    debounceTime(ESPERA_DIGITACAO),
     tap(() => {
       console.log('Fluxo do Filtro');
     }),
-    switchMap((valorDigitado) => this.acoesService.getAcoes(valorDigitado))
+    tap(console.log),
+    filter(
+      (valorDigitado) => valorDigitado.length >= 3 || !valorDigitado.length
+    ),
+    distinctUntilChanged(),
+    switchMap((valorDigitado) => this.acoesService.getAcoes(valorDigitado)),
+    tap(console.log)
   );
-  // acoes$ = this.acoesInput.valueChanges.pipe(
-  //   tap(console.log),
-  //   switchMap((valorDigitado) => this.acoesService.getAcoes(valorDigitado)),
-  //   tap(console.log)
-  // );
 
   acoes$ = merge(this.todasAcoes$, this.filtroPorInput$);
 
